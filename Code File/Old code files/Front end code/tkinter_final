@@ -1,0 +1,93 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Wed Jun  3 16:42:07 2020
+
+@author: shruti_goel
+"""
+
+
+from tkinter import *
+import tkinter as tk
+from tkinter import ttk
+import pandas as pd
+
+df = pd.read_csv('C:\Mywork\POS_gender_score_v3.csv')
+df['Token'] = df['Token'].str.replace(" ","")
+df['Word Replacement'] = df['Word Replacement'].str.replace(" ","")
+list_of_words = df['Token'].to_list()
+
+root=Tk()
+root.geometry("1200x1000")
+
+# Create label 
+root.title("Search The Text") 
+
+
+l1=Label(root,text="Enter your Text",font=('Helvetica',14))
+l1.grid(row=0,column=0)
+
+
+text_entered = Text(root,height=5, width=50,font=('Helvetica',14))
+text_entered.grid(row=0,rowspan=9,column=1,columnspan=1,padx=10,pady=10)
+
+
+def replacement_fun(temp_df,temp_list_word):
+    #print(temp_df.head(5))
+    #print(temp_list_word)
+    word_replacement_list = []
+    df_match_word = pd.DataFrame(columns=['Token', 'Gender', 'Score', 'Word Replacement'])
+    for word in temp_list_word:
+        data = pd.DataFrame(temp_df[temp_df['Token'].str.contains(word,na=False)])
+        df_match_word = df_match_word.append(data)
+    
+    df_match_word = df_match_word.reset_index()
+    del(df_match_word['index'])
+    
+    df_match_word = df_match_word.dropna(subset=['Word Replacement'])[['Token','Word Replacement']].reset_index(drop=True)
+    df_match_word['found'] = df_match_word['Token'].apply(lambda x: sum(i in temp_list_word for i in x.split()))
+    zz = df_match_word[df_match_word['found']==1][['Token','Word Replacement']]
+    replacement_dict = dict(zip(zz.Token, zz['Word Replacement']))
+    return replacement_dict
+
+def my_click():    
+   
+    text_to_display = text_entered.get(0.0,END) 
+    text = Text(root)
+    
+    text.insert(INSERT, text_to_display)
+    text.tag_remove('found', '0.0', END)
+    word_found = []
+    for word in list_of_words:
+        idx = '1.0'
+        while idx:
+            idx = text.search(word, idx, nocase=1, stopindex=END,regexp=True)
+            if idx:
+                lastidx = '%s+%dc' % (idx, len(word))
+                text.tag_add('found', idx, lastidx)
+                idx = lastidx
+                word_found.append(word)
+    dict_replacement = replacement_fun(df,word_found)
+    text.tag_config('found', background ="light blue")
+      
+    l2=Label(root,text="Text Entered",font=('Helvetica',14),foreground='RoyalBlue1')
+   
+
+    l3=Label(root,text="Replacement word",font=('Helvetica',14),foreground='RoyalBlue1')
+    lstbox = Listbox(root,font=('Helvetica',12),width=40)
+    text.grid(row=1,column=0,columnspan=10,rowspan=5) 
+    l2.grid(row=0,column=0,columnspan=9)
+    l3.grid(row=0,column=10,columnspan=10,rowspan=1)    
+    lstbox.grid(row=1,column=10,columnspan=10)
+    for key in dict_replacement:
+        lstbox.insert(END, '{}: {}'.format(key, dict_replacement[key]))
+  
+        
+    l1.destroy()
+    b1.destroy()
+    text_entered.destroy() 
+    
+
+b1 = Button(root, text = "Next", command=my_click,font=('Helvetica',14),bg="light blue") 
+b1.grid(row=10,column=1)
+
+root.mainloop()
